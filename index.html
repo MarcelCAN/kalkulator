@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce Kalkulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font and basic setup */
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type="number"] { -moz-appearance: textfield; }
+        .result-box { 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); 
+            transition: all 0.2s;
+        }
+        .sensitivity-table th, .sensitivity-table td {
+            min-width: 60px;
+        }
+        /* Style für die Lade-Animation */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-2xl p-6 md:p-10">
+        <header class="mb-8 flex justify-between items-start">
+            <div>
+                <h1 class="3xl md:text-4xl font-extrabold text-blue-800 border-b-4 border-blue-200 pb-2">
+                    E-Commerce Commercial Controller Rechner
+                </h1>
+                <p class="text-gray-500 mt-2">Geben Sie Ihre Eckdaten ein, um Nachfrage, Umsatz und Gesamtkosten zu analysieren.</p>
+            </div>
+            
+            <!-- User Info und Status -->
+            <div class="text-right text-sm">
+                <p class="font-semibold text-gray-700">Status: <span id="authStatus" class="text-yellow-600">Verbinde...</span></p>
+                <p class="text-xs text-gray-500 truncate">User ID: <span id="currentUserId">N/A</span></p>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Linke Spalte: Eingabedimensionen -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <h2 class="2xl font-semibold text-gray-700">1. Dimensionen festlegen (Netto-Basis)</h2>
+                
+                <!-- Input Grid (6 Reihen für 11 Felder) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 p-4 bg-gray-50 rounded-lg shadow-inner">
+                    
+                    <!-- Durchschnitts-VK (ASP) -->
+                    <div class="input-group">
+                        <label for="asp" class="block text-sm font-medium text-gray-700">Durchschnitts-VK (Brutto €)</label>
+                        <input type="number" id="asp" value="65.00" min="0" step="0.01" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                        <p class="text-xs text-gray-400 mt-1">Dieser Wert enthält die Mehrwertsteuer.</p>
+                    </div>
+
+                    <!-- Mehrwertsteuersatz (%) -->
+                    <div class="input-group">
+                        <label for="vatRate" class="block text-sm font-medium text-gray-700">Mehrwertsteuersatz (%)</label>
+                        <input type="number" id="vatRate" value="19.0" min="0" max="100" step="0.1" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+                    
+                    <!-- Zahl der Netto verkauften Artikel (Ziel) -->
+                    <div class="input-group">
+                        <label for="netSoldTarget" class="block text-sm font-medium text-gray-700 font-bold">Zahl der Netto verkauften Artikel (Ziel)</label>
+                        <input type="number" id="netSoldTarget" value="10000" min="1" step="100" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2 bg-white font-semibold">
+                    </div>
+
+                    <!-- Retourenquote in % -->
+                    <div class="input-group">
+                        <label for="returnRate" class="block text-sm font-medium text-gray-700">Retourenquote (%)</label>
+                        <input type="number" id="returnRate" value="60.0" min="0" max="100" step="0.1" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+
+                    <!-- Artikel / Bestellung (IPO) -->
+                    <div class="input-group">
+                        <label for="ipo" class="block text-sm font-medium text-gray-700">Artikel / Bestellung (IPO)</label>
+                        <input type="number" id="ipo" value="1.2" min="0" step="0.1" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+
+                    <!-- Artikel / Retourensendung (IPR) -->
+                    <div class="input-group">
+                        <label for="ipr" class="block text-sm font-medium text-gray-700">Artikel / Retourensendung (IPR)</label>
+                        <input type="number" id="ipr" value="1.2" min="1" step="0.1" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                        <p class="text-xs text-gray-400 mt-1">Durchschnittliche Artikel pro Retourensendung.</p>
+                    </div>
+
+                    <!-- Versandkosten (Outbound) pro Bestellung -->
+                    <div class="input-group">
+                        <label for="shippingCostOut" class="block text-sm font-medium text-gray-700">Versandkosten (Outbound) pro Bestellung (€)</label>
+                        <input type="number" id="shippingCostOut" value="4.99" min="0" step="0.01" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+
+                    <!-- Versandkosten für Retouren pro Sendung -->
+                    <div class="input-group">
+                        <label for="shippingCostReturnShipment" class="block text-sm font-medium text-gray-700">Versandkosten für Retouren pro Sendung (€)</label>
+                        <input type="number" id="shippingCostReturnShipment" value="5.99" min="0" step="0.01" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+
+                    <h3 class="sm:col-span-2 text-lg font-semibold text-gray-600 mt-4 border-t pt-4 border-gray-300">Detaillierte Logistikkosten</h3>
+
+                    <!-- Auftragsverarbeitung inkl. Kartonage (pro Bestellung) -->
+                    <div class="input-group">
+                        <label for="orderProcessingCostPerOrder" class="block text-sm font-medium text-gray-700">Auftragsverarbeitung inkl. Kartonage (pro Bestellung €)</label>
+                        <input type="number" id="orderProcessingCostPerOrder" value="1.50" min="0" step="0.01" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+                    
+                    <!-- Pick & Pack (pro Artikel) -->
+                    <div class="input-group">
+                        <label for="pickPackCostPerItem" class="block text-sm font-medium text-gray-700">Pick & Pack (pro Artikel €)</label>
+                        <input type="number" id="pickPackCostPerItem" value="1.10" min="0" step="0.01" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+
+                    <!-- NEU: Warenannahme (pro Artikel) -->
+                    <div class="input-group">
+                        <label for="goodsReceiptCostPerItem" class="block text-sm font-medium text-gray-700">Warenannahme (pro Artikel €)</label>
+                        <input type="number" id="goodsReceiptCostPerItem" value="0.50" min="0" step="0.01" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+
+                    <!-- Retoure inkl. Aufbereitung (pro retourniertem Artikel) -->
+                    <div class="input-group">
+                        <label for="returnProcessingCostPerItem" class="block text-sm font-medium text-gray-700">Retoure inkl. Aufbereitung (pro retourniertem Artikel €)</label>
+                        <input type="number" id="returnProcessingCostPerItem" value="2.50" min="0" step="0.01" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+
+                    <!-- Lagerung (pro Artikel pro Monat) -->
+                    <div class="input-group">
+                        <label for="storageCostPerItemPerMonth" class="block text-sm font-medium text-gray-700">Lagerung (pro Artikel pro Monat €)</label>
+                        <input type="number" id="storageCostPerItemPerMonth" value="0.10" min="0" step="0.01" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+
+                    <!-- Durchschnittliche Dauer im Lager (Monate) -->
+                    <div class="input-group">
+                        <label for="avgStorageDurationMonths" class="block text-sm font-medium text-gray-700">Durchschn. Lagerdauer (Monate)</label>
+                        <input type="number" id="avgStorageDurationMonths" value="3.0" min="0" step="0.1" oninput="calculateMetrics()" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                    </div>
+                    
+                </div>
+                
+                <!-- Speichern / Laden Sektion -->
+                <div class="p-4 bg-white rounded-lg border border-blue-200 shadow-md space-y-4">
+                    <h3 class="text-lg font-semibold text-blue-700 border-b pb-2">Szenario Speichern & Laden</h3>
+                    
+                    <!-- Laden -->
+                    <div>
+                        <label for="scenarioSelector" class="block text-sm font-medium text-gray-700">Gespeicherte Szenarien laden:</label>
+                        <div class="mt-1 flex space-x-2 items-center">
+                            <select id="scenarioSelector" onchange="loadScenario(this.value)" class="block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                                <option value="">--- Szenario auswählen ---</option>
+                            </select>
+                            <button onclick="deleteScenario()" class="px-4 py-2 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition duration-150 shadow-sm text-sm">Löschen</button>
+                        </div>
+                    </div>
+
+                    <!-- Speichern -->
+                    <div class="flex space-x-4">
+                        <div class="flex-grow">
+                            <label for="saveName" class="block text-sm font-medium text-gray-700">Name für neues Szenario:</label>
+                            <input type="text" id="saveName" placeholder="z.B. Baseline Q4 2024" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 border-2">
+                        </div>
+                        <button onclick="saveScenario()" class="self-end px-6 py-3 bg-blue-600 disabled:bg-gray-400 text-white font-bold rounded-lg hover:bg-blue-700 transition duration-150 shadow-lg whitespace-nowrap" id="saveButton" disabled>Speichern</button>
+                    </div>
+                    <div id="statusMessage" class="text-sm text-center text-red-500"></div>
+                </div>
+
+            </div>
+
+            <!-- Rechte Spalte: Ergebnisse -->
+            <div class="lg:col-span-1 space-y-6">
+                <h2 class="text-2xl font-semibold text-gray-700">2. Ergebnisse</h2>
+                <div class="p-4 bg-blue-50 rounded-lg shadow-xl border-t-4 border-blue-400 space-y-4">
+
+                    <h3 class="text-xl font-bold text-blue-800">Nachfrage & Umsatz (Netto)</h3>
+
+                    <!-- Umsatz Brutto (Netto-VK, vor Retouren) -->
+                    <div class="result-box bg-green-100 p-4 rounded-lg flex justify-between items-center border border-gray-200">
+                        <span class="text-sm text-gray-700 font-bold">Umsatz Brutto (Netto-VK, vor Retouren)</span>
+                        <span id="grossRevenueNetVat" class="text-lg font-extrabold text-green-800">0,00 €</span>
+                    </div>
+
+                    <!-- Nettoumsatz (EXKL. MwSt., nach Retouren) -->
+                    <div class="result-box bg-white p-4 rounded-lg flex justify-between items-center border border-gray-200">
+                        <span class="text-sm text-gray-600 font-medium">Nettoumsatz (Net Revenue, exkl. MwSt.)</span>
+                        <span id="netRevenue" class="text-lg font-bold text-green-600">0,00 €</span>
+                    </div>
+                    
+                    <!-- ABGELEITET: Brutto Bestellungen -->
+                    <div class="result-box bg-white p-4 rounded-lg flex justify-between items-center border border-gray-200 bg-green-50">
+                        <span class="text-sm text-gray-600 font-medium font-semibold">Zahl der bestellten Artikel (Brutto)</span>
+                        <span id="orderedItemsGrossDisplay" class="text-lg font-bold text-green-700">0</span>
+                    </div>
+
+                    <!-- Bestellvolumen (Anzahl Bestellungen) -->
+                    <div class="result-box bg-white p-4 rounded-lg flex justify-between items-center border border-gray-200">
+                        <span class="text-sm text-gray-600 font-medium">Bestellvolumen (Anzahl Bestellungen)</span>
+                        <span id="ordersVolume" class="text-lg font-bold text-blue-600">0</span>
+                    </div>
+                    
+                    <!-- Retouren (Anzahl Artikel) -->
+                    <div class="result-box bg-white p-4 rounded-lg flex justify-between items-center border border-gray-200 bg-yellow-50">
+                        <span class="text-sm text-gray-600 font-medium">Zahl der Retouren (Artikel)</span>
+                        <span id="returnItems" class="text-lg font-bold text-yellow-700">0</span>
+                    </div>
+
+                    <!-- Retouren (Anzahl Sendungen) -->
+                    <div class="result-box bg-white p-4 rounded-lg flex justify-between items-center border border-gray-200 bg-yellow-100">
+                        <span class="text-sm text-gray-600 font-medium font-semibold">Anzahl Retourensendungen</span>
+                        <span id="returnShipmentsDisplay" class="text-lg font-bold text-yellow-800">0</span>
+                    </div>
+
+                    <!-- Anzeige Netto Verkauft (Bestätigung des Inputs) -->
+                    <div class="result-box bg-white p-4 rounded-lg flex justify-between items-center border border-gray-200">
+                        <span class="text-sm text-gray-600 font-medium">Netto verkaufte Artikel (Basis)</span>
+                        <span id="netItemsSold" class="text-lg font-bold text-green-600">0</span>
+                    </div>
+
+                    <h3 class="text-xl font-bold text-blue-800 pt-4 border-t border-blue-200">Logistik & Versandkosten</h3>
+
+                    <!-- NEU: Kostenaufschlüsselung -->
+                    <div class="space-y-2 text-sm p-2 bg-white rounded-lg border border-gray-200">
+                        <div class="font-bold text-base text-gray-700 border-b pb-1 mb-1">Kosten-Aufschlüsselung (Euro)</div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Versand (Outbound)</span>
+                            <span id="cost_outbound_shipping" class="font-medium">0,00 €</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Versand (Retouren)</span>
+                            <span id="cost_return_shipping" class="font-medium">0,00 €</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Auftragsverarbeitung / Kartonage</span>
+                            <span id="cost_order_processing" class="font-medium">0,00 €</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Pick & Pack</span>
+                            <span id="cost_pick_pack" class="font-medium">0,00 €</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600 font-semibold text-blue-700">
+                            <span>Warenannahme</span>
+                            <span id="cost_goods_receipt" class="font-semibold">0,00 €</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Retoure inkl. Aufbereitung</span>
+                            <span id="cost_return_processing" class="font-medium">0,00 €</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Lagerung</span>
+                            <span id="cost_storage" class="font-medium">0,00 €</span>
+                        </div>
+                    </div>
+
+                    <!-- Gesamtkosten in Euro -->
+                    <div class="result-box bg-red-100 p-4 rounded-lg flex justify-between items-center border border-red-300">
+                        <span class="text-sm text-red-800 font-bold">Gesamtkosten Logistik & Versand (SUMME)</span>
+                        <span id="totalCostEuro" class="text-lg font-bold text-red-800">0,00 €</span>
+                    </div>
+
+                    <!-- Gesamtkosten in % -->
+                    <div class="result-box bg-white p-4 rounded-lg flex justify-between items-center border border-gray-200 bg-red-50">
+                        <span class="text-sm text-red-700 font-bold">Kostenanteil am Nettoumsatz</span>
+                        <span id="totalCostPercent" class="text-lg font-extrabold text-red-800">0,00 %</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- NEU: Sensitivitäts-Matrix -->
+        <section class="mt-12">
+            <h2 class="text-2xl font-extrabold text-blue-800 mb-4 border-b pb-1">3. Sensitivitätsanalyse: Logistikkostenanteil in %</h2>
+            <p class="text-sm text-gray-600 mb-4">Analyse der prozentualen Logistikkosten in Abhängigkeit von **Durchschnitts-VK** (Y-Achse) und **Retourenquote** (X-Achse). Die Zelle in der Mitte repräsentiert die aktuell eingegebenen Werte.</p>
+
+            <div class="overflow-x-auto rounded-lg shadow-xl">
+                <table class="w-full text-left whitespace-nowrap sensitivity-table bg-white">
+                    <thead id="sensitivityTableHead">
+                        <!-- Head wird von JS befüllt -->
+                    </thead>
+                    <tbody id="sensitivityTableBody">
+                        <!-- Body wird von JS befüllt -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script type="module">
+        // Importiere Firebase Module
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Globale Firebase-Variablen
+        let db;
+        let auth;
+        let userId = 'N/A';
+        let isAuthReady = false;
+        const SCENARIOS_COLLECTION_NAME = 'scenarios';
+
+        // Hilfsfunktion zur Formatierung als Währung (Deutsch/Euro)
+        const formatter = new Intl.NumberFormat('de-DE', {
+            style: 'currency',
+            currency: 'EUR',
+        });
+
+        const numFormatter = new Intl.NumberFormat('de-DE');
+
+        // Funktion zur Anzeige von Statusmeldungen
+        function setStatusMessage(message, isError = false) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `text-sm text-center font-medium mt-2 ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => statusDiv.textContent = '', 5000);
+        }
+
+        // =================================================================
+        // 1. FIREBASE INITIALISIERUNG & AUTH
+        // =================================================================
+        async function initFirebase() {
+            try {
+                // Lese Canvas-Variablen (sollten Strings sein)
+                const appId = typeof __app_id !== 'undefined' ? String(__app_id) : 'default-app-id';
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? String(__initial_auth_token) : null;
+                
+                // =================================================================
+                // 🛑 WICHTIG: BENUTZERDEFINIERTE FIREBASE KONFIGURATION 🛑
+                //
+                // Da die automatische Canvas-Konfiguration fehlschlägt (auth/invalid-api-key),
+                // MÜSSEN SIE HIER IHRE EIGENEN FIREBASE-PROJEKTDATEN eintragen.
+                // Ersetzen Sie alle "YOUR_..." Platzhalter mit den Werten aus Ihrer Firebase Console.
+                // =================================================================
+              const firebaseConfig = {
+    apiKey: "AIzaSyDGzrNBazLFhxTI-O-xkdSUU-c4EIWHGF0",
+    authDomain: "business-case-kalkulator.firebaseapp.com",
+    projectId: "business-case-kalkulator",
+    storageBucket: "business-case-kalkulator.firebasestorage.app",
+    messagingSenderId: "439851647109",
+    appId: "1:439851647109:web:50faf47e5970ada8b4a9ec",
+    measurementId: "G-ZGEB3JMEVH"
+  };
+
+                // Wenn der Benutzer die Platzhalter nicht ersetzt hat:
+                if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+                    document.getElementById('currentUserId').textContent = 'Bitte Firebase-Keys im Code ersetzen, um zu speichern.';
+                    document.getElementById('authStatus').textContent = 'Konfiguration fehlt!';
+                    document.getElementById('authStatus').classList.remove('text-yellow-600', 'text-green-600');
+                    document.getElementById('authStatus').classList.add('text-red-600');
+                    document.getElementById('saveButton').disabled = true;
+                    isAuthReady = false; // Deaktiviert Speicherfunktionen
+                    calculateMetrics();
+                    return; // Beende Firebase-Initialisierung
+                }
+
+
+                // Log-Level für Debugging setzen
+                setLogLevel('debug');
+
+                // Initialisiere App, Auth und Firestore. 
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                document.getElementById('authStatus').textContent = 'Authentifiziere...';
+                document.getElementById('saveButton').disabled = true;
+
+                // Setze Session Persistence 
+                await setPersistence(auth, browserSessionPersistence).catch(e => console.warn("Persistence konnte nicht gesetzt werden:", e));
+
+                // Melde den Benutzer an: Custom Token (bevorzugt) oder Anonym
+                if (initialAuthToken) {
+                    // Verwende den optionalen Canvas-Token für eine persistente User-ID
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    // Fallback: Anonyme Anmeldung, um eine temporäre UID zu erhalten
+                    await signInAnonymously(auth);
+                }
+
+                // Listener für den Authentifizierungsstatus
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        // Erfolgreiche Anmeldung
+                        userId = user.uid;
+                        document.getElementById('currentUserId').textContent = userId;
+                        document.getElementById('authStatus').textContent = 'Verbunden';
+                        document.getElementById('authStatus').classList.remove('text-yellow-600', 'text-red-600', 'text-orange-500');
+                        document.getElementById('authStatus').classList.add('text-green-600');
+                        document.getElementById('saveButton').disabled = false;
+                        
+                        // Starte Datenbank-Listener und Berechnungen
+                        loadScenariosListener();
+                    } else {
+                        // Sollte nicht passieren, wenn signInAnonymously aufgerufen wird
+                        document.getElementById('authStatus').textContent = 'Anmeldung fehlgeschlagen';
+                        document.getElementById('authStatus').classList.add('text-red-600');
+                    }
+                    isAuthReady = true; // Auth-Status ist gesetzt
+                    calculateMetrics();
+                });
+
+            } catch (error) {
+                // Fängt Fehler von initializeApp, signInWithCustomToken ab
+                console.error("Kritischer Firebase-Fehler bei Initialisierung/Auth: ", error);
+                
+                document.getElementById('authStatus').textContent = 'Fehler!';
+                document.getElementById('authStatus').classList.remove('text-yellow-600', 'text-green-600', 'text-orange-500');
+                document.getElementById('authStatus').classList.add('text-red-600');
+                
+                let errorMessage = error.message;
+                if (error.code) {
+                    errorMessage = `Firebase: ${error.code} - ${error.message}`;
+                }
+
+                // Zeige detailliertere Fehler-ID an
+                document.getElementById('currentUserId').textContent = errorMessage.substring(0, 80) + '...'; 
+                isAuthReady = false; 
+                document.getElementById('saveButton').disabled = true;
+                calculateMetrics(); 
+            }
+        }
+
+        // =================================================================
+        // 2. SZENARIO SPEICHERN / LADEN LOGIK
+        // =================================================================
+        
+        // Funktion zum Abrufen aller Eingabewerte
+        function getScenarioData() {
+            const inputs = document.querySelectorAll('.input-group input');
+            const data = {};
+            inputs.forEach(input => {
+                data[input.id] = input.value;
+            });
+            data.userId = userId;
+            data.timestamp = new Date().toISOString();
+            // Name des Szenarios wird separat beim Speichern hinzugefügt
+            return data;
+        }
+
+        // Funktion zum Laden der Werte in die Eingabefelder
+        function setScenarioData(data) {
+            for (const id in data) {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.value = data[id];
+                }
+            }
+            // Nach dem Laden muss neu gerechnet werden
+            calculateMetrics();
+            setStatusMessage(`Szenario "${data.name}" geladen.`);
+        }
+
+        // Firestore Pfad für öffentliche (teilbare) Daten
+        function getScenarioCollectionRef() {
+            if (!db) {
+                console.error("Datenbank nicht initialisiert.");
+                throw new Error("Datenbank nicht initialisiert.");
+            }
+            // Da wir eine benutzerdefinierte Konfiguration verwenden, ist appId der projectId
+            const appId = auth.app.options.projectId || 'default-project-id';
+            const collectionPath = `artifacts/${appId}/public/data/${SCENARIOS_COLLECTION_NAME}`;
+            return collection(db, collectionPath);
+        }
+
+        // Speichert das aktuelle Szenario
+        window.saveScenario = async function() {
+            if (!isAuthReady || !db) {
+                setStatusMessage('Fehler: Speichern nur in verbundener Umgebung möglich.', true);
+                return;
+            }
+            
+            const saveNameInput = document.getElementById('saveName');
+            const scenarioName = saveNameInput.value.trim();
+
+            if (!scenarioName) {
+                setStatusMessage('Bitte geben Sie einen Namen für das Szenario ein.', true);
+                return;
+            }
+
+            try {
+                const data = getScenarioData();
+                data.name = scenarioName;
+                
+                // Firestore Dokument-ID ist der Name des Szenarios (für einfache Adressierung)
+                const docId = scenarioName.replace(/[^a-zA-Z0-9\-_]/g, '_'); // Erlaubt nur alphanumerische Zeichen, - und _
+                const scenarioRef = doc(getScenarioCollectionRef(), docId); 
+                await setDoc(scenarioRef, data);
+                
+                setStatusMessage(`Szenario "${scenarioName}" erfolgreich gespeichert.`);
+                saveNameInput.value = ''; // Eingabefeld leeren
+            } catch (e) {
+                console.error("Fehler beim Speichern des Szenarios: ", e);
+                setStatusMessage(`Fehler beim Speichern: ${e.message}`, true);
+            }
+        }
+
+        // Lädt ein ausgewähltes Szenario
+        window.loadScenario = function(scenarioId) {
+            if (!isAuthReady) {
+                 setStatusMessage('Fehler: Laden nur in verbundener Umgebung möglich.', true);
+                 return;
+            }
+            if (!scenarioId) return;
+
+            const selector = document.getElementById('scenarioSelector');
+            const selectedOption = selector.options[selector.selectedIndex];
+            
+            try {
+                // Daten aus dem data-Attribut des Select-Elements lesen
+                const dataString = selectedOption.getAttribute('data-data');
+                const data = dataString ? JSON.parse(dataString) : null;
+                
+                if (data) {
+                    setScenarioData(data);
+                } else {
+                     setStatusMessage('Fehler: Szenario-Daten konnten nicht gefunden werden.', true);
+                }
+            } catch (e) {
+                console.error("Fehler beim Laden des Szenarios: ", e);
+                setStatusMessage(`Fehler beim Laden: ${e.message}`, true);
+            }
+        }
+        
+        // Löscht das aktuell ausgewählte Szenario (ohne Bestätigungs-Prompt, da alert/confirm verboten sind)
+        window.deleteScenario = async function() {
+            if (!isAuthReady || !db) {
+                setStatusMessage('Fehler: Löschen nur in verbundener Umgebung möglich.', true);
+                return;
+            }
+
+            const selector = document.getElementById('scenarioSelector');
+            const scenarioId = selector.value;
+            const scenarioName = selector.options[selector.selectedIndex]?.textContent;
+
+            if (!scenarioId) {
+                setStatusMessage('Bitte wählen Sie ein Szenario zum Löschen aus.', true);
+                return;
+            }
+            
+            // WICHTIG: Da alert/confirm verboten ist, wird die Bestätigung übersprungen.
+            // Der User muss wissen, dass der Lösch-Button sofort löscht.
+
+            try {
+                const scenarioRef = doc(getScenarioCollectionRef(), scenarioId);
+                await deleteDoc(scenarioRef);
+                setStatusMessage(`Szenario "${scenarioName}" wurde gelöscht.`);
+                selector.value = '';
+                calculateMetrics(); // Re-trigger, um die Liste zu aktualisieren
+            } catch (e) {
+                console.error("Fehler beim Löschen des Szenarios: ", e);
+                setStatusMessage(`Fehler beim Löschen: ${e.message}`, true);
+            }
+        }
+        
+        // Listener für Echtzeit-Updates der Szenarien
+        function loadScenariosListener() {
+            if (!db) return; // Wichtig: Sicherstellen, dass db initialisiert wurde
+
+            const scenariosQuery = query(getScenarioCollectionRef());
+            const selector = document.getElementById('scenarioSelector');
+
+            // HINWEIS: Dieser Listener wird nun direkt in der onAuthStateChanged/catch-Blöcken aufgerufen, 
+            // um zu versuchen, Daten abzurufen, auch wenn die Auth-Routine fehlschlägt.
+
+            onSnapshot(scenariosQuery, (snapshot) => {
+                const currentSelectedId = selector.value;
+                selector.innerHTML = '<option value="">--- Szenario auswählen ---</option>';
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = `${data.name} (von ${data.userId.substring(0, 5)}...)`;
+                    option.setAttribute('data-data', JSON.stringify(data)); // Speichere Daten im Element
+                    selector.appendChild(option);
+                });
+                
+                // Wähle das zuvor ausgewählte Szenario wieder aus, falls es noch existiert
+                if (currentSelectedId) {
+                    selector.value = currentSelectedId;
+                }
+            }, (error) => {
+                console.error("Fehler beim Abrufen der Szenarien: ", error);
+                setStatusMessage('Fehler beim Laden der Szenarien-Liste.', true);
+            });
+        }
+
+
+        // =================================================================
+        // 3. KALKULATIONS-LOGIK
+        // =================================================================
+        
+        /**
+         * Führt die Kernberechnung durch und gibt den Logistikkostenanteil in Prozent zurück.
+         * @param {number} aspOverride - Durchschnitts-VK (Brutto) für diese Iteration.
+         * @param {number} returnRateOverride - Retourenquote (%) für diese Iteration.
+         * @returns {number} Logistikkosten in % des Nettoumsatzes.
+         */
+        function getLogisticsCostPercent(aspOverride, returnRateOverride) {
+            // 1. Lesen der FIXEN Eingaben (die sich in der Matrix nicht ändern)
+            const vatRate = parseFloat(document.getElementById('vatRate').value) || 0; 
+            const ipo = parseFloat(document.getElementById('ipo').value) || 1; 
+            const netSoldTarget = parseInt(document.getElementById('netSoldTarget').value) || 0; 
+            const shippingCostOut = parseFloat(document.getElementById('shippingCostOut').value) || 0; 
+            const ipr = parseFloat(document.getElementById('ipr').value) || 1; 
+            const shippingCostReturnShipment = parseFloat(document.getElementById('shippingCostReturnShipment').value) || 0; 
+            
+            // Detaillierte Logistikkosten (alle pro Artikel/Bestellung/Monat)
+            const orderProcessingCostPerOrder = parseFloat(document.getElementById('orderProcessingCostPerOrder').value) || 0; 
+            const pickPackCostPerItem = parseFloat(document.getElementById('pickPackCostPerItem').value) || 0; 
+            const goodsReceiptCostPerItem = parseFloat(document.getElementById('goodsReceiptCostPerItem').value) || 0;
+            const returnProcessingCostPerItem = parseFloat(document.getElementById('returnProcessingCostPerItem').value) || 0; 
+            const storageCostPerItemPerMonth = parseFloat(document.getElementById('storageCostPerItemPerMonth').value) || 0; 
+            const avgStorageDurationMonths = parseFloat(document.getElementById('avgStorageDurationMonths').value) || 0; 
+
+            // 2. Variable und Hilfsvariablen
+            const asp = aspOverride;
+            const returnRate = returnRateOverride;
+
+            const safeIpo = ipo > 0 ? ipo : 1; 
+            const safeIpr = ipr > 0 ? ipr : 1;
+            const returnFactor = 1 - (returnRate / 100);
+            const vatFactor = 1 + (vatRate / 100);
+            
+            // Netto-Verkaufspreis pro Artikel (ASP exklusive MwSt.)
+            const aspNet = vatFactor > 0 ? asp / vatFactor : 0; 
+
+            // =================================================================
+            // BERECHNUNGEN (Die Ergebnisse werden NICHT im DOM angezeigt, nur genutzt)
+            // =================================================================
+
+            // Brutto bestellte Artikel
+            const orderedItemsGross = returnFactor > 0 ? netSoldTarget / returnFactor : 0; 
+            // Bestellvolumen (Anzahl Outbound Sendungen)
+            const ordersVolume = orderedItemsGross / safeIpo;
+            // Retouren (in Artikeln)
+            const returnItems = orderedItemsGross - netSoldTarget;
+            // Retourensendungen
+            const returnShipments = returnItems / safeIpr; 
+            // Netto verkaufte Artikel (Basis-Input)
+            const netItemsSold = netSoldTarget;
+            // Nettoumsatz (Net Revenue, exkl. MwSt., nach Retouren)
+            const netRevenue = netItemsSold * aspNet;
+
+
+            // K. Logistikkosten-Komponenten
+            const outboundShippingCost = ordersVolume * shippingCostOut;
+            const returnShippingCost = returnShipments * shippingCostReturnShipment;
+            const totalOrderProcessingCost = ordersVolume * orderProcessingCostPerOrder;
+            const totalPickPackCost = orderedItemsGross * pickPackCostPerItem;
+            const totalGoodsReceiptCost = orderedItemsGross * goodsReceiptCostPerItem;
+            const totalReturnProcessingCost = returnItems * returnProcessingCostPerItem;
+            const totalStorageCost = orderedItemsGross * storageCostPerItemPerMonth * avgStorageDurationMonths;
+
+            // Gesamtkosten Logistik & Versand (SUMME)
+            const totalCostEuro = 
+                outboundShippingCost + 
+                returnShippingCost + 
+                totalOrderProcessingCost + 
+                totalPickPackCost + 
+                totalGoodsReceiptCost +
+                totalReturnProcessingCost +
+                totalStorageCost;
+
+            // Gesamtkosten in % vom Nettoumsatz
+            let totalCostPercent = 0;
+            if (netRevenue > 0) {
+                totalCostPercent = (totalCostEuro / netRevenue) * 100;
+            }
+
+            return totalCostPercent;
+        }
+
+        /**
+         * Erstellt und füllt die Sensitivitäts-Matrix.
+         */
+        function createSensitivityTable(baseASP, baseReturnRate) {
+            const tableBody = document.getElementById('sensitivityTableBody');
+            const tableHead = document.getElementById('sensitivityTableHead');
+            tableBody.innerHTML = '';
+            tableHead.innerHTML = '';
+
+            // X-Achse (Retourenquote): -5% bis +5% in 1% Schritten
+            const rrSteps = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
+            // Y-Achse (ASP): -10€ bis +10€ in 2€ Schritten
+            const aspDeltas = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]; 
+
+            // 1. Berechne den Basiswert für den Vergleich (Mittelzelle)
+            const baseCostPercent = getLogisticsCostPercent(baseASP, baseReturnRate);
+
+
+            // 2. X-Achse Header (Return Rate)
+            let headerHtml = '<tr><th class="p-2 border bg-gray-200 text-xs font-bold whitespace-normal">VK / Retourenquote (%)</th>';
+            rrSteps.forEach(delta => {
+                const rr = Math.max(0, baseReturnRate + delta); // RR kann nicht negativ sein
+                const colorClass = delta === 0 ? 'bg-blue-300' : 'bg-gray-200';
+                headerHtml += `<th class="p-2 border text-xs font-semibold ${colorClass}">${rr.toFixed(1).replace('.', ',')} %</th>`;
+            });
+            headerHtml += '</tr>';
+            tableHead.innerHTML = headerHtml;
+
+            // 3. Y-Achse und Zellen (ASP)
+            aspDeltas.slice().reverse().forEach(deltaASP => { // Reverse für absteigende Y-Achse
+                const currentASP = Math.max(0.01, baseASP + deltaASP); // ASP muss positiv sein
+                let rowHtml = '<tr>';
+                
+                // Y-Achse Zelle (ASP)
+                const aspColorClass = deltaASP === 0 ? 'bg-blue-300 font-bold' : 'bg-gray-200';
+                rowHtml += `<td class="p-2 border text-sm font-bold ${aspColorClass} whitespace-nowrap">${currentASP.toFixed(2).replace('.', ',')} €</td>`;
+
+                // Zellen füllen
+                rrSteps.forEach(deltaRR => {
+                    const currentRR = Math.max(0, baseReturnRate + deltaRR);
+                    
+                    // Berechnung für diese Zelle
+                    const costPercent = getLogisticsCostPercent(currentASP, currentRR);
+                    const diff = costPercent - baseCostPercent;
+
+                    // 4. Farbkodierung basierend auf der Differenz zum Basiswert
+                    let cellClass = 'bg-gray-100'; 
+                    
+                    if (deltaASP === 0 && deltaRR === 0) {
+                        cellClass = 'bg-blue-300 font-bold text-blue-900'; // Center cell
+                    } else if (diff > 0.001) { // Kosten sind HÖHER (ROT)
+                        if (diff > 5.0) {
+                            cellClass = 'bg-red-500 text-white font-bold';
+                        } else if (diff > 3.0) {
+                            cellClass = 'bg-red-400 font-bold';
+                        } else if (diff > 1.0) {
+                            cellClass = 'bg-red-300';
+                        } else {
+                            cellClass = 'bg-red-200';
+                        }
+                    } else if (diff < -0.001) { // Kosten sind NIEDRIGER (GRÜN)
+                        const absDiff = Math.abs(diff);
+                        if (absDiff > 5.0) {
+                            cellClass = 'bg-green-500 text-white font-bold';
+                        } else if (absDiff > 3.0) {
+                            cellClass = 'bg-green-400 font-bold';
+                        } else if (absDiff > 1.0) {
+                            cellClass = 'bg-green-300';
+                        } else {
+                            cellClass = 'bg-green-200';
+                        }
+                    } else {
+                         cellClass = 'bg-gray-100'; // Praktisch gleich
+                    }
+                    
+                    rowHtml += `<td class="p-2 border text-xs text-center ${cellClass}">${costPercent.toFixed(2).replace('.', ',')} %</td>`;
+                });
+                
+                rowHtml += '</tr>';
+                tableBody.innerHTML += rowHtml;
+            });
+        }
+
+        /**
+         * Liest alle Eingabewerte aus dem DOM, führt die Hauptberechnungen durch 
+         * und aktualisiert die Ergebnis-Boxen und die Matrix.
+         */
+        window.calculateMetrics = function() {
+            // 1. Eingaben lesen (für die Hauptanzeige und als Basis für die Matrix)
+            const asp = parseFloat(document.getElementById('asp').value) || 0; 
+            const returnRate = parseFloat(document.getElementById('returnRate').value) || 0; 
+            
+            // 2. Holen der berechneten Metriken für die Hauptanzeige
+            const vatRate = parseFloat(document.getElementById('vatRate').value) || 0; 
+            const ipo = parseFloat(document.getElementById('ipo').value) || 1; 
+            const netSoldTarget = parseInt(document.getElementById('netSoldTarget').value) || 0; 
+            const shippingCostOut = parseFloat(document.getElementById('shippingCostOut').value) || 0; 
+            const ipr = parseFloat(document.getElementById('ipr').value) || 1; 
+            const shippingCostReturnShipment = parseFloat(document.getElementById('shippingCostReturnShipment').value) || 0; 
+            
+            const orderProcessingCostPerOrder = parseFloat(document.getElementById('orderProcessingCostPerOrder').value) || 0; 
+            const pickPackCostPerItem = parseFloat(document.getElementById('pickPackCostPerItem').value) || 0; 
+            const goodsReceiptCostPerItem = parseFloat(document.getElementById('goodsReceiptCostPerItem').value) || 0;
+            const returnProcessingCostPerItem = parseFloat(document.getElementById('returnProcessingCostPerItem').value) || 0; 
+            const storageCostPerItemPerMonth = parseFloat(document.getElementById('storageCostPerItemPerMonth').value) || 0; 
+            const avgStorageDurationMonths = parseFloat(document.getElementById('avgStorageDurationMonths').value) || 0; 
+
+            // Hilfsvariablen
+            const safeIpo = ipo > 0 ? ipo : 1; 
+            const safeIpr = ipr > 0 ? ipr : 1;
+            const returnFactor = 1 - (returnRate / 100);
+            const vatFactor = 1 + (vatRate / 100);
+            
+            // Netto-Verkaufspreis pro Artikel (ASP exklusive MwSt.)
+            const aspNet = vatFactor > 0 ? asp / vatFactor : 0; 
+
+            // =================================================================
+            // HAUPT-BERECHNUNGEN (DOM-Anzeige)
+            // =================================================================
+
+            const orderedItemsGross = returnFactor > 0 ? netSoldTarget / returnFactor : 0; 
+            const ordersVolume = orderedItemsGross / safeIpo;
+            const returnItems = orderedItemsGross - netSoldTarget;
+            const returnShipments = returnItems / safeIpr; 
+            const netItemsSold = netSoldTarget;
+
+            const grossRevenueNetVat = orderedItemsGross * aspNet;
+            const netRevenue = netItemsSold * aspNet;
+
+            // Kosten-Komponenten
+            const outboundShippingCost = ordersVolume * shippingCostOut;
+            const returnShippingCost = returnShipments * shippingCostReturnShipment;
+            const totalOrderProcessingCost = ordersVolume * orderProcessingCostPerOrder;
+            const totalPickPackCost = orderedItemsGross * pickPackCostPerItem;
+            const totalGoodsReceiptCost = orderedItemsGross * goodsReceiptCostPerItem;
+            const totalReturnProcessingCost = returnItems * returnProcessingCostPerItem;
+            const totalStorageCost = orderedItemsGross * storageCostPerItemPerMonth * avgStorageDurationMonths;
+
+            // Gesamtkosten Logistik & Versand (SUMME)
+            const totalCostEuro = 
+                outboundShippingCost + 
+                returnShippingCost + 
+                totalOrderProcessingCost + 
+                totalPickPackCost + 
+                totalGoodsReceiptCost +
+                totalReturnProcessingCost +
+                totalStorageCost;
+
+            let totalCostPercent = 0;
+            if (netRevenue > 0) {
+                totalCostPercent = (totalCostEuro / netRevenue) * 100;
+            }
+
+            // =================================================================
+            // 3. ERGEBNISSE ANZEIGEN
+            // =================================================================
+            
+            // Allgemeine Metriken
+            document.getElementById('grossRevenueNetVat').textContent = formatter.format(grossRevenueNetVat);
+            document.getElementById('netRevenue').textContent = formatter.format(netRevenue);
+            document.getElementById('ordersVolume').textContent = numFormatter.format(Math.round(ordersVolume));
+            document.getElementById('netItemsSold').textContent = numFormatter.format(Math.round(netItemsSold));
+            document.getElementById('returnItems').textContent = numFormatter.format(Math.round(returnItems)); 
+            document.getElementById('returnShipmentsDisplay').textContent = numFormatter.format(Math.round(returnShipments)); 
+            document.getElementById('orderedItemsGrossDisplay').textContent = numFormatter.format(Math.round(orderedItemsGross)); 
+            
+            // Kostenaufschlüsselung
+            document.getElementById('cost_outbound_shipping').textContent = formatter.format(outboundShippingCost);
+            document.getElementById('cost_return_shipping').textContent = formatter.format(returnShippingCost);
+            document.getElementById('cost_order_processing').textContent = formatter.format(totalOrderProcessingCost);
+            document.getElementById('cost_pick_pack').textContent = formatter.format(totalPickPackCost);
+            document.getElementById('cost_goods_receipt').textContent = formatter.format(totalGoodsReceiptCost);
+            document.getElementById('cost_return_processing').textContent = formatter.format(totalReturnProcessingCost);
+            document.getElementById('cost_storage').textContent = formatter.format(totalStorageCost);
+
+            // Gesamtkosten
+            document.getElementById('totalCostEuro').textContent = formatter.format(totalCostEuro);
+            document.getElementById('totalCostPercent').textContent = totalCostPercent.toFixed(2).replace('.', ',') + ' %';
+
+            // 4. Sensitivitäts-Matrix erstellen
+            createSensitivityTable(asp, returnRate);
+        }
+
+        // Starte die Firebase Initialisierung beim Laden der Seite
+        window.onload = initFirebase;
+    </script>
+
+</body>
+</html>
